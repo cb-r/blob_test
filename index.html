@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fetch and Display RADNET data through MQTT</title>
+</head>
+<body>
+    <h1>RADNET data received through MQTT</h1>
+    <div id="blogEntries">
+        <!-- Blog entries will be displayed here -->
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', fetchData);
+
+        async function fetchData() {
+            // const baseUrl = 'https://uwnetworkcloudstorage.blob.core.windows.net/mqttdata';
+            // const queryParams = new URLSearchParams({
+            //     restype: 'container',
+            //     comp: 'list',
+            //     sp: 'rl',
+            //     st: '2024-06-18T05:57:20Z',
+            //     se: '2024-06-25T13:57:20Z',
+            //     spr: 'https',
+            //     sv: '2022-11-02',
+            //     sr: 'c',
+            //     sig: 'EFSxLxd7r5b5EX8852V3h52vG9BPF3gu6iwakuzbwnA%3D'
+            // });
+
+            const entriesPerPage = 10; // Number of entries to fetch per request
+            let blogEntries = [];
+            let continuationToken = null;
+
+            try {
+                do {
+                    // Construct URL with continuation token if available
+                    const base_url = 'https://uwnetworkcloudstorage.blob.core.windows.net/mqttdata';
+                    const container_query = '?restype=container&comp=list'
+                    const url_auth = 'sp=rl&st=2024-06-18T05:57:20Z&se=2024-06-25T13:57:20Z&spr=https&sv=2022-11-02&sr=c&sig=EFSxLxd7r5b5EX8852V3h52vG9BPF3gu6iwakuzbwnA%3D'
+                    const url = base_url+container_query+'&'+url_auth
+                    const response = await fetch(url);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+
+                    const xmlText = await response.text(); // Get XML text
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+
+                    // Extract blog entries from XML
+                    const blobs = xmlDoc.getElementsByTagName('Blob');
+                    for (let i = 0; i < blobs.length; i++) {
+                        const name = blobs[i].getElementsByTagName('Name')[0]?.textContent || '';
+                        const lastModified = blobs[i].getElementsByTagName('Properties')[0]?.getElementsByTagName('Last-Modified')[0]?.textContent || '';
+                        const contentType = blobs[i].getElementsByTagName('Properties')[0]?.getElementsByTagName('Content-Type')[0]?.textContent || '';
+                        const content = blobs[i].getElementsByTagName('Properties')[0]?.getElementsByTagName('Content')[0]?.textContent || '';
+                        
+                        const this_content_url = base_url+'/'+name+'?'+url_auth
+
+                        const response = await fetch(this_content_url);
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+
+                        const xmlText = await response.text();
+                        //console.log('Fetched XML content:', xmlText);
+                        const jsonData = JSON.parse(xmlText);
+                        // console.log(jsonData.data)
+                        // const msgContent = jsonData.data.msg;
+
+                        //const msgContentDiv = document.getElementById('msgContent');
+                        // Display XML content in the HTML
+                        //const blobContentDiv = document.getElementById('id');
+                        //blobContentDiv.innerHTML = `<pre>${escapeHtml(xmlText)}</pre>`; // Use escapeHtml to display XML safely
+
+
+                        blogEntries.push({
+                            Name: name,
+                            LastModified: lastModified,
+                            ContentType: contentType,
+                            Content: jsonData.data
+                        });
+                    }
+
+                    // Update continuation token for next request
+                    continuationToken = xmlDoc.getElementsByTagName('NextMarker')[0]?.textContent;
+
+                } while (continuationToken);
+
+                // Display all blog entries on the page
+                displayBlogEntries(blogEntries);
+
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                const blogEntriesDiv = document.getElementById('blogEntries');
+                blogEntriesDiv.innerHTML = `<div style="color: red;">Error fetching data. Please check console for details.</div>`;
+            }
+        }
+
+        function displayBlogEntries(entries) {
+            const blogEntriesDiv = document.getElementById('blogEntries');
+
+            if (entries.length === 0) {
+                blogEntriesDiv.innerHTML = `<div>No blog entries found.</div>`;
+                return;
+            }
+
+            const entriesHtml = entries.map(entry => {
+                return `<div>
+                            <br>
+                            <p><strong>Message UUID: </strong> ${entry.Name}</h3>
+                            <p><strong>Last Modified:</strong> ${new Date(entry.LastModified).toLocaleString()}</p>
+                            <p><strong>Content Type:</strong> ${entry.ContentType}</p>
+                            <p><strong>Content:</strong></p>
+                            <pre>${entry.Content}</pre>
+                        </div>`;
+            }).join('');
+
+            blogEntriesDiv.innerHTML = entriesHtml;
+        }
+    </script>
+</body>
+</html>
