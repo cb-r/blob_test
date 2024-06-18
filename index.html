@@ -15,18 +15,7 @@
         document.addEventListener('DOMContentLoaded', fetchData);
 
         async function fetchData() {
-            // const baseUrl = 'https://uwnetworkcloudstorage.blob.core.windows.net/mqttdata';
-            // const queryParams = new URLSearchParams({
-            //     restype: 'container',
-            //     comp: 'list',
-            //     sp: 'rl',
-            //     st: '2024-06-18T05:57:20Z',
-            //     se: '2024-06-25T13:57:20Z',
-            //     spr: 'https',
-            //     sv: '2022-11-02',
-            //     sr: 'c',
-            //     sig: 'EFSxLxd7r5b5EX8852V3h52vG9BPF3gu6iwakuzbwnA%3D'
-            // });
+
 
             const entriesPerPage = 10; // Number of entries to fetch per request
             let blogEntries = [];
@@ -35,9 +24,9 @@
             try {
                 do {
                     // Construct URL with continuation token if available
-                    const base_url = 'https://uwnetworkcloudstorage.blob.core.windows.net/mqttdata';
+                    const base_url = 'https://xxx.blob.core.windows.net/mqttdata';
                     const container_query = '?restype=container&comp=list'
-                    const url_auth = 'sp=rl&st=2024-06-18T05:57:20Z&se=2024-06-25T13:57:20Z&spr=https&sv=2022-11-02&sr=c&sig=EFSxLxd7r5b5EX8852V3h52vG9BPF3gu6iwakuzbwnA%3D'
+                    const url_auth = 'xxx'
                     const url = base_url+container_query+'&'+url_auth
                     const response = await fetch(url);
                     
